@@ -18,6 +18,7 @@ uniform bool before;
 uniform bool flattenWhite;
 in vec2 uv;
 out vec4 outputColor;
+// Standard sRGB transfer functions keep all grading in linear light.
 vec3 decode(vec3 c) {
   return mix(pow((c + .055) / 1.055, vec3(2.4)), c / 12.92, lessThanEqual(c, vec3(.04045)));
 }
@@ -28,12 +29,14 @@ vec3 encode(vec3 c) {
 vec3 adjust(vec3 c, vec4 a, float s) {
   c *= exp2(a.x);
   c *= exp2(vec3(.25*a.z + .125*a.w, -.25*a.w, -.25*a.z + .125*a.w));
+  // Contrast pivots at scene-linear middle gray; saturation uses Rec.709 luminance.
   c = .18 + (c - .18) * exp2(a.y);
   return mix(vec3(dot(c, vec3(.2126, .7152, .0722))), c, 1.0+s);
 }
 void main() {
   vec4 pixel = texture(source, uv);
   vec3 linear = decode(pixel.rgb);
+  // Blend the preset against the unchanged source first, then apply manual edits.
   if (!before) linear = adjust(mix(linear, adjust(linear, presetA, presetS), intensity), manualA, manualS);
   if (flattenWhite) linear = linear * pixel.a + vec3(1.0 - pixel.a);
   outputColor = vec4(encode(linear), flattenWhite ? 1.0 : pixel.a);

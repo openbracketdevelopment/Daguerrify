@@ -30,6 +30,7 @@
   let quality = $state(92)
   let thumbnails = $state<Partial<Record<PresetId, string>>>({})
   let generation = 0
+  let thumbnailRun = 0
   let destroyed = false
   let observer: ResizeObserver
   let viewportWidth = $state(800)
@@ -153,13 +154,14 @@
     }
   }
   async function makeThumbnails(token: number): Promise<void> {
+    const run = ++thumbnailRun
     for (const preset of PRESETS) {
       await new Promise<void>(resolve => window.setTimeout(resolve, 30))
-      if (destroyed || token !== generation || !renderer || unavailable) return
+      if (destroyed || token !== generation || run !== thumbnailRun || !renderer || unavailable) return
       if (thumbnails[preset.id]) continue
       try {
         const data = await renderer.thumbnail({ ...createDocument(), presetId: preset.id }, 160)
-        if (destroyed || token !== generation) return
+        if (destroyed || token !== generation || run !== thumbnailRun) return
         thumbnails = { ...thumbnails, [preset.id]: data }
       } catch { return }
     }
@@ -325,7 +327,7 @@
         <button class="button compare-button" disabled={disabled} aria-pressed={before} onclick={toggleBefore}><Icon name="compare" /><span>{before ? 'Show edited' : 'Before / after'}</span></button>
       </div>
       <!-- The focusable preview region intentionally supports keyboard panning without claiming a button or application role. -->
-      <!-- svelte-ignore a11y_no_noninteractive_tabindex a11y_no_noninteractive_element_interactions -->
+      <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
       <div class="image-viewport" class:has-image={!!source} class:can-pan={!!source && zoom > 1} class:panning class:dragging={dragActive}
         bind:this={viewport} role="region" aria-label="Image preview. When zoomed, drag or use arrow keys to pan." tabindex={source ? 0 : -1}
         onpointerdown={panStart} onpointermove={panMove} onpointerup={panEnd} onpointercancel={panEnd} onlostpointercapture={() => { pointer = null; panning = false }}

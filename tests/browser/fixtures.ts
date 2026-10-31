@@ -84,16 +84,38 @@ export async function generateFixtures(page: Page): Promise<void> {
     ]
     files['orientation-6.jpg'] = [...jpeg.slice(0, 2), ...exif, ...jpeg.slice(2)]
     const png = files['chart-ramp.png']!
-    const chunk = [0, 0, 0, 8, 97, 99, 84, 76, 0, 0, 0, 1, 0, 0, 0, 0]
-    let crc = 0xffffffff
-    for (const byte of chunk.slice(4)) {
-      crc ^= byte
-      for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ ((crc & 1) ? 0xedb88320 : 0)
+    const pngChunk = (type: string, data: number[]) => {
+      const length = data.length
+      const chunk = [length >>> 24, (length >>> 16) & 255, (length >>> 8) & 255, length & 255,
+        ...Array.from(type, char => char.charCodeAt(0)), ...data]
+      let crc = 0xffffffff
+      for (const byte of chunk.slice(4)) {
+        crc ^= byte
+        for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ ((crc & 1) ? 0xedb88320 : 0)
+      }
+      crc = (crc ^ 0xffffffff) >>> 0
+      chunk.push(crc >>> 24, (crc >>> 16) & 255, (crc >>> 8) & 255, crc & 255)
+      return chunk
     }
-    crc = (crc ^ 0xffffffff) >>> 0
-    chunk.push(crc >>> 24, (crc >>> 16) & 255, (crc >>> 8) & 255, crc & 255)
-    files['animated.png'] = [...png.slice(0, 33), ...chunk, ...png.slice(33)]
+    const animation = pngChunk('acTL', [0, 0, 0, 1, 0, 0, 0, 0])
+    const frame = pngChunk('fcTL', [
+      0, 0, 0, 0, // sequence
+      0, 0, 1, 0, 0, 0, 0, 96, // width, height
+      0, 0, 0, 0, 0, 0, 0, 0, // offsets
+      0, 100, 3, 232, 0, 0, // 100/1000 second delay, dispose none, blend source
+    ])
+    files['animated.png'] = [...png.slice(0, 33), ...animation, ...frame, ...png.slice(33)]
     files['corrupt.png'] = png.slice(0, 43)
+    // Valid framing and CRCs but an invalid compressed stream exercises decoder failure.
+    let offset = 33
+    const broken = png.slice(0, 33)
+    while (offset < png.length) {
+      const length = ((png[offset]! << 24) | (png[offset + 1]! << 16) | (png[offset + 2]! << 8) | png[offset + 3]!) >>> 0
+      const type = String.fromCharCode(...png.slice(offset + 4, offset + 8))
+      broken.push(...(type === 'IDAT' ? pngChunk('IDAT', [0, 0, 0, 0]) : png.slice(offset, offset + length + 12)))
+      offset += length + 12
+    }
+    files['corrupt-payload.png'] = broken
     return files
   })
   await mkdir('testdata', { recursive: true })

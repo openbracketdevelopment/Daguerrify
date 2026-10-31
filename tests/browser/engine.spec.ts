@@ -207,7 +207,7 @@ test('PNG retains alpha; JPEG flattens graded linear color over white', async ({
 })
 
 test('loader rejects corrupt, unsupported, animated and unsafe dimensions', async ({ page }) => {
-  const fixtures = await Promise.all(['corrupt.png', 'unsupported.svg', 'animated.png'].map(async name => ({ name, bytes: Array.from(await readFile(fixturePath(name))) })))
+  const fixtures = await Promise.all(['corrupt.png', 'unsupported.svg', 'animated.png', 'corrupt-payload.png'].map(async name => ({ name, bytes: Array.from(await readFile(fixturePath(name))) })))
   const errors = await page.evaluate(async fixtures => {
     const imagePath = '/src/engine/image.ts'
     const { loadImage } = await import(imagePath)
@@ -227,7 +227,8 @@ test('loader rejects corrupt, unsupported, animated and unsafe dimensions', asyn
   expect(errors[0]).toMatch(/truncated|incomplete|corrupt/i)
   expect(errors[1]).toMatch(/JPEG and PNG/i)
   expect(errors[2]).toMatch(/animated/i)
-  expect(errors[3]).toMatch(/pixel/i)
+  expect(errors[3]).toMatch(/corrupt|decoded/i)
+  expect(errors[4]).toMatch(/pixel/i)
 })
 
 test('context loss pauses exports and restoration retains source and settings', async ({ page }) => {
@@ -330,4 +331,57 @@ test('renderer guards allocation, thumbnails and disposal without silently losin
   expect(result.errors[3]).toMatch(/quality/i)
   expect(result.errors[4]).toMatch(/decoded|available/i)
   expect(result.errors[5]).toMatch(/disposed/i)
+})
+
+test('an asynchronous export is a stable snapshot while replacing the renderer source', async ({ page }) => {
+  const fixtures = await Promise.all(['chart-ramp.png', 'transparent-edges.png'].map(async name => ({ name, bytes: Array.from(await readFile(fixturePath(name))) })))
+  const result = await page.evaluate(async fixtures => {
+    const imagePath = '/src/engine/image.ts'
+    const rendererPath = '/src/engine/rendering/renderer.ts'
+    const documentPath = '/src/editor/state/document.ts'
+    const { loadImage } = await import(imagePath)
+    const { ImageRenderer } = await import(rendererPath)
+    const { createDocument } = await import(documentPath)
+    const first = await loadImage(new File([new Uint8Array(fixtures[0]!.bytes)], fixtures[0]!.name))
+    const next = await loadImage(new File([new Uint8Array(fixtures[1]!.bytes)], fixtures[1]!.name))
+    const renderer = new ImageRenderer(document.createElement('canvas'))
+    renderer.setSource(first)
+    const toBlob = HTMLCanvasElement.prototype.toBlob
+    HTMLCanvasElement.prototype.toBlob = function (callback, type, quality) {
+      toBlob.call(this, blob => setTimeout(() => callback(blob), 100), type, quality)
+    }
+    try {
+      const pending: Promise<Blob> = renderer.export('image/png')
+      const errors: string[] = []
+      try { await renderer.export('image/png') } catch (error) { errors.push(String(error)) }
+      try { await renderer.thumbnail(createDocument()) } catch (error) { errors.push(String(error)) }
+      renderer.setSource(next)
+      first.dispose()
+      const doc = createDocument()
+      doc.adjustments.exposure = 1
+      renderer.setDocument(doc)
+      const snapshot = await createImageBitmap(await pending)
+      const snapshotDimensions = [snapshot.width, snapshot.height]
+      const scratch = document.createElement('canvas')
+      scratch.width = snapshot.width
+      scratch.height = snapshot.height
+      const ctx = scratch.getContext('2d')!
+      ctx.drawImage(snapshot, 0, 0)
+      const gray = Array.from(ctx.getImageData(128, 20, 1, 1).data)
+      snapshot.close()
+      const replacement = await createImageBitmap(await renderer.export('image/png'))
+      const replacementDimensions = [replacement.width, replacement.height]
+      replacement.close()
+      return { errors, snapshotDimensions, replacementDimensions, gray }
+    } finally {
+      HTMLCanvasElement.prototype.toBlob = toBlob
+      renderer.dispose()
+      next.dispose()
+    }
+  }, fixtures)
+  expect(result.errors).toHaveLength(2)
+  expect(result.errors.every(error => /already.*encoded/i.test(error))).toBe(true)
+  expect(result.snapshotDimensions).toEqual([256, 96])
+  expect(result.replacementDimensions).toEqual([96, 64])
+  for (const channel of result.gray.slice(0, 3)) expect(Math.abs(channel - 128)).toBeLessThanOrEqual(3)
 })

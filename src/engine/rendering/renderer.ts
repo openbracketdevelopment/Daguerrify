@@ -12,6 +12,8 @@ export interface RendererCapabilities {
 
 export class ImageRenderer {
   private readonly gl: WebGL2RenderingContext
+  private readonly canvas: HTMLCanvasElement
+  private readonly onStatus?: (message: string, unavailable: boolean) => void
   private caps!: RendererCapabilities
   private program: WebGLProgram | null = null
   private vao: WebGLVertexArrayObject | null = null
@@ -29,7 +31,9 @@ export class ImageRenderer {
 
   get capabilities(): Readonly<RendererCapabilities> { return this.caps }
 
-  constructor(private readonly canvas: HTMLCanvasElement, private readonly onStatus?: (message: string, unavailable: boolean) => void) {
+  constructor(canvas: HTMLCanvasElement, onStatus?: (message: string, unavailable: boolean) => void) {
+    this.canvas = canvas
+    this.onStatus = onStatus
     const gl = canvas.getContext('webgl2', {
       alpha: true, premultipliedAlpha: false, antialias: false,
       depth: false, stencil: false, preserveDrawingBuffer: false,

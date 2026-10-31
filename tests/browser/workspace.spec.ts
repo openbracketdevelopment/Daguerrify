@@ -68,7 +68,7 @@ test('bad imports preserve current photograph, settings, rendered pixels and his
   await setSlider(slider(page, 'Exposure'), .45)
   await page.getByRole('button', { name: /Amber Hour/ }).click()
   const prior = await pixels(page)
-  for (const filename of ['corrupt.png', 'unsupported.svg', 'animated.png']) {
+  for (const filename of ['corrupt.png', 'unsupported.svg', 'animated.png', 'corrupt-payload.png']) {
     await imageInput(page).setInputFiles(fixturePath(filename))
     await expect(page.getByRole('alert')).toBeVisible()
     await expect(status(page)).toContainText('current photograph and edits are safe')

@@ -285,7 +285,14 @@ function encodingHarness(deferred = false) {
   const callbacks: BlobCallback[] = []
   const putImageData = vi.fn()
   vi.stubGlobal('ImageData', class {
-    constructor(public data: Uint8ClampedArray, public width: number, public height: number) {}
+    data: Uint8ClampedArray
+    width: number
+    height: number
+    constructor(data: Uint8ClampedArray, width: number, height: number) {
+      this.data = data
+      this.width = width
+      this.height = height
+    }
   })
   vi.stubGlobal('document', {
     createElement: () => {
