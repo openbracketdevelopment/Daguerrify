@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { EditHistory } from '../../src/editor/history/history'
-import { PRESETS, getPreset, validatePreset, type Preset } from '../../src/editor/presets/presets'
-import { createDocument, NEUTRAL, validateAdjustments, validateDocument, type EditDocument } from '../../src/editor/state/document'
+import { EditHistory } from '../../src/editor/history/history.js'
+import { PRESETS, getPreset, validatePreset, type Preset } from '../../src/editor/presets/presets.js'
+import { createDocument, NEUTRAL, validateAdjustments, validateDocument, type EditDocument } from '../../src/editor/state/document.js'
 
 const exposed = (exposure: number): EditDocument => ({
   ...createDocument(), adjustments: { ...NEUTRAL, exposure },

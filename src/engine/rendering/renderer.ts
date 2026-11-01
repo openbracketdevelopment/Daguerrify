@@ -1,7 +1,7 @@
-import { createDocument, validateDocument, NEUTRAL, type Adjustments, type EditDocument } from '../../editor/state/document'
-import { pipelineParameters } from '../color'
-import { DEFAULT_LIMITS, validateDimensions, type ImageFormat, type LoadedImage } from '../image'
-import { fragmentShader, vertexShader } from './shaders'
+import { createDocument, validateDocument, NEUTRAL, type Adjustments, type EditDocument } from '../../editor/state/document.js'
+import { pipelineParameters } from '../color.js'
+import { DEFAULT_LIMITS, validateDimensions, type ImageFormat, type LoadedImage } from '../image.js'
+import { fragmentShader, vertexShader } from './shaders.js'
 
 export interface RendererCapabilities {
   maxTextureSize: number

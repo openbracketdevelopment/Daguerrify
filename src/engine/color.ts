@@ -1,5 +1,5 @@
-import { validateDocument, validateAdjustments, type Adjustments, type EditDocument } from '../editor/state/document'
-import { getPreset, validatePreset } from '../editor/presets/presets'
+import { validateDocument, validateAdjustments, type Adjustments, type EditDocument } from '../editor/state/document.js'
+import { getPreset, validatePreset } from '../editor/presets/presets.js'
 
 export type RGB = [number, number, number]
 export function srgbToLinear(value: number): number {

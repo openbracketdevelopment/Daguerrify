@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createDocument, NEUTRAL } from '../../src/editor/state/document'
-import { getPreset, PRESETS } from '../../src/editor/presets/presets'
-import { applyAdjustments, linearToSrgb, processPixel, srgbToLinear, type RGB } from '../../src/engine/color'
-import { DEFAULT_LIMITS, loadImage, parseImageHeader, parseJpeg, parsePng, pngChunkCrc, resolveLimits, validateDimensions } from '../../src/engine/image'
-import { ImageRenderer } from '../../src/engine/rendering/renderer'
+import { createDocument, NEUTRAL } from '../../src/editor/state/document.js'
+import { getPreset, PRESETS } from '../../src/editor/presets/presets.js'
+import { applyAdjustments, linearToSrgb, processPixel, srgbToLinear, type RGB } from '../../src/engine/color.js'
+import { DEFAULT_LIMITS, loadImage, parseImageHeader, parseJpeg, parsePng, pngChunkCrc, resolveLimits, validateDimensions } from '../../src/engine/image.js'
+import { ImageRenderer } from '../../src/engine/rendering/renderer.js'
 
 function chunk(type: string, data: Uint8Array): Uint8Array {
   const result = new Uint8Array(data.length + 12)

@@ -1,12 +1,14 @@
-import { cloneDocument, documentsEqual, validateDocument, type EditDocument } from '../state/document'
+import { cloneDocument, documentsEqual, validateDocument, type EditDocument } from '../state/document.js'
 
 export class EditHistory {
   private past: EditDocument[] = []
   private future: EditDocument[] = []
   private gesture: EditDocument | null = null
   private current: EditDocument
+  private readonly limit: number
 
-  constructor(initial: EditDocument, private readonly limit = 50) {
+  constructor(initial: EditDocument, limit = 50) {
+    this.limit = limit
     this.current = validateDocument(initial)
   }
   get value(): EditDocument { return cloneDocument(this.current) }

@@ -1,4 +1,4 @@
-import { NEUTRAL, PRESET_IDS, validateAdjustments, type Adjustments, type PresetId } from '../state/document'
+import { NEUTRAL, PRESET_IDS, validateAdjustments, type Adjustments, type PresetId } from '../state/document.js'
 
 export interface Preset {
   id: PresetId
